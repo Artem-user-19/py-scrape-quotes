@@ -8,7 +8,10 @@ import logging
 BASE_URL = "https://quotes.toscrape.com/"
 
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
 
 @dataclass
@@ -29,9 +32,9 @@ OUTPUT_AUTHORS_PATH = "authors.csv"
 
 
 def parse_single_quote(quote_soup: BeautifulSoup) -> Quote:
-    text = quote_soup.select_one(".text").text.replace("“", "").replace("”", "")
+    text = quote_soup.select_one(".text").text
     author = quote_soup.select_one(".author").text
-    tags = [tag.text for tag in quote_soup.select(".tag")]
+    tags = [tag.get_text(strip=True) for tag in quote_soup.select(".tag")]
     logging.debug(f"Parsed quote: {text} by {author} with tags {tags}")
     return Quote(text=text, author=author, tags=tags)
 
@@ -46,7 +49,10 @@ def parse_author_bio(author_url: str) -> Author:
     return Author(name=name, bio=bio)
 
 
-def get_single_page_quotes(page_soup: BeautifulSoup, authors: Dict[str, Author]) -> List[Quote]:
+def get_single_page_quotes(
+        page_soup: BeautifulSoup,
+        authors: Dict[str, Author]
+) -> List[Quote]:
     quotes = page_soup.select(".quote")
     quotes_list = []
     for quote_soup in quotes:
@@ -83,32 +89,35 @@ def get_all_quotes_and_authors() -> (List[Quote], Dict[str, Author]):
 
 def save_quotes_to_csv(quotes: List[Quote], output_csv_path: str) -> None:
     logging.info(f"Saving quotes to {output_csv_path}")
-    with open(output_csv_path, mode='w', newline='', encoding='utf-8') as file:
+    with open(output_csv_path, mode="w", newline="", encoding="utf-8") as file:
         writer = csv.writer(file)
-        writer.writerow(['text', 'author', 'tags'])
+        writer.writerow(["text", "author", "tags"])
         for quote in quotes:
-            writer.writerow([quote.text, quote.author, ', '.join(quote.tags)])
+            writer.writerow([quote.text, quote.author, quote.tags])
             logging.debug(f"Saved quote: {quote.text} by {quote.author}")
     logging.info(f"Quotes saved to {output_csv_path}")
 
 
-def save_authors_to_csv(authors: Dict[str, Author], output_csv_path: str) -> None:
+def save_authors_to_csv(
+        authors: Dict[str, Author],
+        output_csv_path: str
+) -> None:
     logging.info(f"Saving authors to {output_csv_path}")
-    with open(output_csv_path, mode='w', newline='', encoding='utf-8') as file:
+    with open(output_csv_path, mode="w", newline="", encoding="utf-8") as file:
         writer = csv.writer(file)
-        writer.writerow(['name', 'bio'])
+        writer.writerow(["name", "bio"])
         for author in authors.values():
             writer.writerow([author.name, author.bio])
             logging.debug(f"Saved author: {author.name}")
     logging.info(f"Authors saved to {output_csv_path}")
 
 
-def main(output_quotes_csv_path: str, output_authors_csv_path: str) -> None:
+def main(output_quotes_csv_path: str) -> None:
     quotes, authors = get_all_quotes_and_authors()
     save_quotes_to_csv(quotes, output_quotes_csv_path)
-    save_authors_to_csv(authors, output_authors_csv_path)
-    logging.info(f"Quotes and authors saved successfully")
+    save_authors_to_csv(authors, OUTPUT_AUTHORS_PATH)
+    logging.info("Quotes and authors saved successfully")
 
 
 if __name__ == "__main__":
-    main(OUTPUT_QUOTES_PATH, OUTPUT_AUTHORS_PATH)
+    main(OUTPUT_QUOTES_PATH)
