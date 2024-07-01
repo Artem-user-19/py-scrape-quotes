@@ -1,12 +1,11 @@
 from dataclasses import dataclass
-from typing import List, Dict
+from typing import List, Dict, Any
 import requests
 from bs4 import BeautifulSoup
 import csv
 import logging
 
 BASE_URL = "https://quotes.toscrape.com/"
-
 
 logging.basicConfig(
     level=logging.INFO,
@@ -87,29 +86,45 @@ def get_all_quotes_and_authors() -> (List[Quote], Dict[str, Author]):
     return all_quotes, authors
 
 
-def save_quotes_to_csv(quotes: List[Quote], output_csv_path: str) -> None:
-    logging.info(f"Saving quotes to {output_csv_path}")
+def save_to_csv(
+        data: List[Dict[str, Any]],
+        headers: List[str],
+        output_csv_path: str
+) -> None:
+    logging.info(f"Saving data to {output_csv_path}")
     with open(output_csv_path, mode="w", newline="", encoding="utf-8") as file:
-        writer = csv.writer(file)
-        writer.writerow(["text", "author", "tags"])
-        for quote in quotes:
-            writer.writerow([quote.text, quote.author, quote.tags])
-            logging.debug(f"Saved quote: {quote.text} by {quote.author}")
-    logging.info(f"Quotes saved to {output_csv_path}")
+        writer = csv.DictWriter(file, fieldnames=headers)
+        writer.writeheader()
+        for item in data:
+            writer.writerow(item)
+            logging.debug(f"Saved item: {item}")
+    logging.info(f"Data saved to {output_csv_path}")
+
+
+def save_quotes_to_csv(quotes: List[Quote], output_csv_path: str) -> None:
+    data = [
+        {
+            "text": quote.text,
+            "author": quote.author,
+            "tags": quote.tags
+        } for quote in quotes
+    ]
+    headers = ["text", "author", "tags"]
+    save_to_csv(data, headers, output_csv_path)
 
 
 def save_authors_to_csv(
         authors: Dict[str, Author],
         output_csv_path: str
 ) -> None:
-    logging.info(f"Saving authors to {output_csv_path}")
-    with open(output_csv_path, mode="w", newline="", encoding="utf-8") as file:
-        writer = csv.writer(file)
-        writer.writerow(["name", "bio"])
-        for author in authors.values():
-            writer.writerow([author.name, author.bio])
-            logging.debug(f"Saved author: {author.name}")
-    logging.info(f"Authors saved to {output_csv_path}")
+    data = [
+        {
+            "name": author.name,
+            "bio": author.bio
+        } for author in authors.values()
+    ]
+    headers = ["name", "bio"]
+    save_to_csv(data, headers, output_csv_path)
 
 
 def main(output_quotes_csv_path: str) -> None:
